@@ -1,0 +1,4 @@
+ifconfig eth0 16.2.4.2/24 up
+route add default gw 16.2.4.254
+
+snort -A console -q -c /etc/snort/snort.conf -i eth0

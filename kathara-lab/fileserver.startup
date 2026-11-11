@@ -1,0 +1,6 @@
+ifconfig eth0 16.2.4.55/24 up
+route add default gw 16.2.4.254
+
+# Servico Emulado de Ficheiros (loop para múltiplos testes)
+# while true; do nc -l -p 35015; done &
+

@@ -1,0 +1,20 @@
+ifconfig eth0 6.6.6.100/24 up
+route add default gw 6.6.6.1
+
+#instalar OpenVPN
+#apt-get update && apt-get install -y openvpn
+
+#criar device TUN
+mkdir -p /dev/net
+mknod /dev/net/tun c 10 200
+chmod 600 /dev/net/tun
+
+#esperar que o router1 gere os certs 
+while [ ! -f /shared/vpn-ana/ta.key ]; do sleep 2; done
+
+#copiar certificados da /shared/ para /root/
+cp /shared/vpn-ana/* /root/
+
+#arrancar cliente VPN
+cd /root && openvpn --config ana.conf --daemon
+

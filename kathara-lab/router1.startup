@@ -1,0 +1,74 @@
+ifconfig eth0 16.2.2.1/24 up
+ifconfig eth1 6.6.6.1/24 up
+
+#rota para a rede da Cloud (IDA)
+route add -net 20.4.3.0/24 gw 6.6.6.2
+
+#rota para as redes internas do escritorio usando netmask explicita (REGRESSO)
+route add -net 16.2.0.0 netmask 255.255.240.0 gw 16.2.2.2
+
+#IP forwarding — necessário para encaminhar pacotes do tun0 para eth0
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# Limpar certs antigos do /shared/ para evitar race condition
+# (os clientes esperam por ca.crt — se existir do run anterior, usam chaves velhas)
+rm -rf /shared/vpn-ana /shared/vpn-bento
+
+
+#preparar easy-rsa
+cp -r /usr/share/easy-rsa /etc/openvpn/
+cp /etc/openvpn/easy-rsa/vars.example /etc/openvpn/easy-rsa/vars
+
+#configurar vars
+cat >> /etc/openvpn/easy-rsa/vars << 'EOF'
+set_var EASYRSA_REQ_COUNTRY   "PORTUGAL"
+set_var EASYRSA_REQ_CITY      "Oeiras"
+set_var EASYRSA_REQ_ORG       "RedVector"
+set_var EASYRSA_REQ_EMAIL     "geral@redvector.pt"
+set_var EASYRSA_REQ_OU        "OpenVPN"
+EOF
+
+#gerar PKI — modo batch, sem prompts (automação)
+cd /etc/openvpn/easy-rsa
+export EASYRSA_BATCH=1
+export EASYRSA_REQ_CN="RedVector-CA"
+
+#inicializar PKI
+./easyrsa init-pki
+
+#criar CA — par de chaves + certificado
+./easyrsa build-ca nopass
+
+#Gerar chaves e certificados
+#servidor
+./easyrsa gen-req server nopass
+./easyrsa sign-req server server
+
+# Clientes
+./easyrsa gen-req ana nopass
+./easyrsa sign-req client ana
+./easyrsa gen-req bento nopass
+./easyrsa sign-req client bento
+
+#Diffie-Hellman
+./easyrsa gen-dh
+
+#chave tls-auth
+openvpn --genkey --secret /etc/openvpn/ta.key
+
+#copiar ficheiros do servidor para /etc/openvpn/
+cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/dh.pem /etc/openvpn/
+
+#distribuir ficheiros dos clientes via /shared/
+mkdir -p /shared/vpn-ana /shared/vpn-bento
+cp pki/ca.crt pki/issued/ana.crt pki/private/ana.key /etc/openvpn/ta.key /shared/vpn-ana/
+cp pki/ca.crt pki/issued/bento.crt pki/private/bento.key /etc/openvpn/ta.key /shared/vpn-bento/
+
+#apagar chaves privadas dos clientes do servidor
+rm -f pki/private/ana.key pki/private/bento.key
+
+#criar device TUN 
+mkdir -p /dev/net && mknod /dev/net/tun c 10 200 && chmod 600 /dev/net/tun
+
+#arrancar servidor VPN
+cd /etc/openvpn && openvpn --config server.conf --daemon

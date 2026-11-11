@@ -1,0 +1,17 @@
+ifconfig eth0 6.6.6.200/24 up
+route add default gw 6.6.6.1
+
+
+#criar device TUN
+mkdir -p /dev/net
+mknod /dev/net/tun c 10 200
+chmod 600 /dev/net/tun
+
+#esperar que o router1 gere os certs
+while [ ! -f /shared/vpn-bento/ta.key ]; do sleep 2; done
+
+#copiar certificados da /shared/ para /root/
+cp /shared/vpn-bento/* /root/
+
+#arrancar cliente VPN
+cd /root && openvpn --config bento.conf --daemon

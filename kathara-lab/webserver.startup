@@ -1,0 +1,5 @@
+ifconfig eth0 20.4.3.2/24 up
+route add default gw 20.4.3.254
+
+# Arrancar o servidor web Apache2
+/etc/init.d/apache2 start

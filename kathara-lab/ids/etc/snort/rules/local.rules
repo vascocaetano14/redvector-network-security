@@ -1,0 +1,5 @@
+alert tcp any any -> 16.2.4.0/24 22 (msg:"Alerta: Tentativa de acesso SSH a rede Corporate"; sid:1000001;)
+
+alert tcp any any -> 16.2.4.0/24 23 (msg:"Alerta: Tentativa de acesso Telnet a rede Corporate"; sid:1000002;)
+
+alert tcp any any -> 16.2.4.0/24 any (msg:"Alerta: Possivel Brute Force"; detection_filter:track by_src, count 5, seconds 60; sid:1000003;)

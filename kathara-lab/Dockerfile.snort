@@ -1,0 +1,7 @@
+FROM kathara/quagga
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends snort && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/log/snort

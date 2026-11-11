@@ -1,0 +1,21 @@
+ifconfig eth0 16.2.5.1/24 up
+route add default gw 16.2.5.254
+
+#cria user para acesso SSH
+useradd -m -s /bin/bash sirs
+echo "sirs:temporaria" | chpasswd
+
+#permissões da pasta .ssh e authorized_keys
+chmod 700 /home/sirs/.ssh
+chmod 600 /home/sirs/.ssh/authorized_keys
+chown -R sirs:sirs /home/sirs/.ssh
+
+#configurar sshd: chave pública sim, password não 
+sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+
+/etc/init.d/ssh start
+
+# Servico Emulado de Ataques
+nc -l -p 40015 &
